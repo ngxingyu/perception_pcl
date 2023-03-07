@@ -41,6 +41,7 @@
 // ROS core
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/logging.hpp>
+#include "rclcpp_components/register_node_macro.hpp"
 // Image message
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -50,8 +51,10 @@
 #include <pcl_conversions/pcl_conversions.h>
 // stl stuff
 #include <string>
-
-class PointCloudToImage: public rclcpp::Node {
+namespace pcl_ros
+{
+class PointCloudToImage: public rclcpp::Node
+{
 public:
   void
   cloud_cb(const sensor_msgs::msg::PointCloud2::SharedPtr cloud)
@@ -72,26 +75,13 @@ public:
           e.what());
     }
   }
-  PointCloudToImage()
-  : Node("point_cloud_to_image")
+
+  explicit PointCloudToImage(const rclcpp::NodeOptions & options)
+  : Node("point_cloud_to_image", options)
   {
-    const std::string &input = "input";
-    Node::declare_parameter(input, rclcpp::PARAMETER_STRING);
-    if (!this->has_parameter(input)) {
-        RCLCPP_WARN(this->get_logger(), "[ConvertPointCloudToImage] No input topic provided");
-        return;
-    }
-
-    const std::string &output = "output";
-    Node::declare_parameter(output, rclcpp::PARAMETER_STRING);
-    if (!this->has_parameter(output)) {
-        RCLCPP_WARN(this->get_logger(), "[ConvertPointCloudToImage] No output topic provided");
-        return;
-    }
-
     // print some info about the node
-    std::string cloud_topic_ = this->get_parameter(input).as_string();
-    std::string image_topic_ = this->get_parameter(output).as_string();
+    std::string cloud_topic_ = this->declare_parameter<std::string>("input");
+    std::string image_topic_ = this->declare_parameter<std::string>("output");
 
     sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(cloud_topic_, 30,
       std::bind(&PointCloudToImage::cloud_cb, this, std::placeholders::_1));
@@ -108,12 +98,6 @@ private:
   std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>> sub_;
   std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> image_pub_;  // image message publisher
 };
-
-int
-main(int argc, char ** argv)
-{
-  rclcpp::init(argc, argv);
-  auto converter = std::make_shared<PointCloudToImage>();
-  rclcpp::spin(converter);
-  return 0;
 }
+
+RCLCPP_COMPONENTS_REGISTER_NODE(pcl_ros::PointCloudToImage)

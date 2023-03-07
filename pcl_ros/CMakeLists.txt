@@ -170,30 +170,36 @@ rclcpp_components_register_node(pcd_to_pointcloud_lib
 #target_link_libraries(convert_pcd_to_image ${Boost_LIBRARIES} ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 #
 
-add_executable(pointcloud_to_pcd tools/pointcloud_to_pcd.cpp)
-target_link_libraries(pointcloud_to_pcd ${PCL_LIBRARIES})
-ament_target_dependencies(pointcloud_to_pcd
+add_library(pointcloud_to_pcd_lib SHARED tools/pointcloud_to_pcd.cpp)
+target_link_libraries(pointcloud_to_pcd_lib
+  ${PCL_LIBRARIES})
+target_include_directories(pointcloud_to_pcd_lib PUBLIC
+  ${PCL_INCLUDE_DIRS})
+ament_target_dependencies(pointcloud_to_pcd_lib
   rclcpp
   rclcpp_components
   sensor_msgs
   pcl_conversions
   tf2_ros
   tf2_eigen)
+rclcpp_components_register_node(pointcloud_to_pcd_lib
+  PLUGIN "pcl_ros::PointCloudToPCD"
+  EXECUTABLE pointcloud_to_pcd)
 
-add_executable(convert_pointcloud_to_image tools/convert_pointcloud_to_image.cpp)
-target_link_libraries(convert_pointcloud_to_image ${PCL_LIBRARIES})
-ament_target_dependencies(convert_pointcloud_to_image
+
+add_library(convert_pointcloud_to_image_lib SHARED tools/convert_pointcloud_to_image.cpp)
+target_link_libraries(convert_pointcloud_to_image_lib
+  ${PCL_LIBRARIES})
+target_include_directories(convert_pointcloud_to_image_lib PUBLIC
+  ${PCL_INCLUDE_DIRS})
+ament_target_dependencies(convert_pointcloud_to_image_lib
   rclcpp
   rclcpp_components
   sensor_msgs
   pcl_conversions)
-
-install(
-  TARGETS
-  convert_pointcloud_to_image
-  pointcloud_to_pcd
-  DESTINATION lib/${PROJECT_NAME}
-)
+rclcpp_components_register_node(convert_pointcloud_to_image_lib
+  PLUGIN "pcl_ros::PointCloudToImage"
+  EXECUTABLE convert_pointcloud_to_image)
 
 #
 ### Downloads
@@ -239,10 +245,10 @@ install(
     pcl_ros_filters
 #    pcl_ros_surface
 #    pcl_ros_segmentation
-#    pointcloud_to_pcd
+    pointcloud_to_pcd_lib
 #    bag_to_pcd
 #    convert_pcd_to_image
-#    convert_pointcloud_to_image
+    convert_pointcloud_to_image_lib
   EXPORT export_pcl_ros
   RUNTIME DESTINATION bin
   ARCHIVE DESTINATION lib

@@ -38,6 +38,7 @@
 // ROS core
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/logging.hpp>
+#include "rclcpp_components/register_node_macro.hpp"
 
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
@@ -65,7 +66,10 @@
 Cloud Data) file format.
 
 **/
-class PointCloudToPCD: public rclcpp::Node {
+namespace pcl_ros
+{
+class PointCloudToPCD: public rclcpp::Node
+{
 private:
   std::string prefix_;
   bool binary_;
@@ -139,26 +143,15 @@ public:
   }
 
   ////////////////////////////////////////////////////////////////////////////////
-  PointCloudToPCD()
-  : Node("pointcloud_to_pcd"), binary_(false), compressed_(false)
+  explicit PointCloudToPCD(const rclcpp::NodeOptions & options)
+  : rclcpp::Node("pointcloud_to_pcd", options), binary_(false), compressed_(false)
   {
-    // Check if a prefix parameter is defined for output file names.
-    Node::declare_parameter("prefix", rclcpp::PARAMETER_STRING);
-    Node::declare_parameter("fixed_frame", rclcpp::PARAMETER_STRING);
-    Node::declare_parameter("binary", rclcpp::PARAMETER_BOOL);
-    Node::declare_parameter("compressed", rclcpp::PARAMETER_BOOL);
-    Node::declare_parameter("input", rclcpp::PARAMETER_STRING);
-
-    if (!this->has_parameter("prefix")) {
-        RCLCPP_WARN(this->get_logger(), "[PointCloudToPCD] No prefix provided");
-        return;
-    }
-    prefix_ = this->get_parameter("prefix").as_string();
+    prefix_ = this->declare_parameter<std::string>("prefix");
     RCLCPP_INFO_STREAM(this->get_logger(), "PCD file prefix is: " << prefix_);
 
-    fixed_frame_ = this->get_parameter("fixed_frame").as_string();
-    binary_ = this->get_parameter("binary").as_bool();
-    compressed_ = this->get_parameter("compressed").as_bool();
+    fixed_frame_ = this->declare_parameter<std::string>("fixed_frame");
+    binary_ = this->declare_parameter<bool>("binary");
+    compressed_ = this->declare_parameter<bool>("compressed");
     if (binary_) {
       if (compressed_) {
         RCLCPP_INFO_STREAM(this->get_logger(), "Saving as binary compressed PCD");
@@ -169,7 +162,7 @@ public:
       RCLCPP_INFO_STREAM(this->get_logger(), "Saving as binary PCD");
     }
 
-    std::string cloud_topic_ = this->get_parameter("input").as_string();
+    cloud_topic_ = this->declare_parameter<std::string>("input");
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(this->get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
     sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2> (cloud_topic_, 1,
@@ -179,16 +172,5 @@ public:
         cloud_topic_.c_str());
   }
 };
-
-/* ---[ */
-int
-main(int argc, char ** argv)
-{
-  rclcpp::init(argc, argv);
-
-  auto converter = std::make_shared<PointCloudToPCD>();
-  rclcpp::spin(converter);
-
-  return 0;
 }
-/* ]--- */
+RCLCPP_COMPONENTS_REGISTER_NODE(pcl_ros::PointCloudToPCD)
