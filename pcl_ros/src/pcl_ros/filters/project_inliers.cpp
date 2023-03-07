@@ -36,7 +36,6 @@
  */
 
 #include "pcl_ros/filters/project_inliers.hpp"
-#include <pcl/io/io.h>
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 pcl_ros::ProjectInliers::ProjectInliers(const rclcpp::NodeOptions & options)
@@ -78,6 +77,23 @@ pcl_ros::ProjectInliers::ProjectInliers(const rclcpp::NodeOptions & options)
 
   // TODO(daisukes): lazy subscription after rclcpp#2060
   subscribe();
+}
+
+void
+pcl_ros::ProjectInliers::filter(
+  const PointCloud2::ConstSharedPtr & input, const IndicesPtr & indices,
+  PointCloud2 & output)
+{
+  pcl::PCLPointCloud2::Ptr pcl_input(new pcl::PCLPointCloud2);
+  pcl_conversions::toPCL(*(input), *(pcl_input));
+  impl_.setInputCloud(pcl_input);
+  impl_.setIndices(indices);
+  pcl::ModelCoefficients::Ptr pcl_model(new pcl::ModelCoefficients);
+  pcl_conversions::toPCL(*(model_), *(pcl_model));
+  impl_.setModelCoefficients(pcl_model);
+  pcl::PCLPointCloud2 pcl_output;
+  impl_.filter(pcl_output);
+  pcl_conversions::moveFromPCL(pcl_output, output);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
